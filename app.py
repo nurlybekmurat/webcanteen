@@ -1,3 +1,7 @@
+import os
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -5,9 +9,10 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from functools import wraps
 
 # --- Конфигурация Flask и Расширений ---
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='static', template_folder='templates')
+
 app.config['SECRET_KEY'] = 'your_super_secret_key_change_this'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cantean.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'cantean.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
