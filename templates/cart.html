@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Ваша корзина{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">🛒 Ваша корзина</h1>
+
+{% if cart_items %}
+<div class="card shadow-lg mb-4">
+    <div class="card-body">
+        <ul class="list-group list-group-flush">
+            {% for item in cart_items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-1">{{ item.name }}</h5>
+                    <small class="text-muted">{{ "%.2f"|format(item.price) }} ₸ x {{ item.quantity }} шт.</small>
+                </div>
+                <span class="badge bg-secondary rounded-pill fs-6">{{ "%.2f"|format(item.subtotal) }} ₸</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center bg-light">
+        <h4 class="mb-0">Итого к оплате:</h4>
+        <h3 class="mb-0 text-danger">{{ "%.2f"|format(total_price) }} ₸</h3>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between">
+    <form method="POST" action="{{ url_for('clear_cart') }}">
+        <button type="submit" class="btn btn-warning"><i class="bi bi-trash"></i> Очистить корзину</button>
+    </form>
+    <button class="btn btn-success btn-lg" style="background-color: var(--secondary-color); border-color: var(--secondary-color);"><i class="bi bi-check-circle"></i> Оформить заказ</button>
+</div>
+
+{% else %}
+<div class="alert alert-info py-4" role="alert">
+    <h4 class="alert-heading">Ваша корзина пуста!</h4>
+    <p>Начните свой обеденный заказ прямо сейчас.</p>
+    <hr>
+    <a href="{{ url_for('index') }}" class="btn btn-info">Вернуться к меню</a>
+</div>
+{% endif %}
+{% endblock %}
