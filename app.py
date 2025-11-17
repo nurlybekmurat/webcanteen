@@ -7,6 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from functools import wraps
+from datetime import timedelta
+from datetime import datetime
 
 # --- Конфигурация Flask и Расширений ---
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -16,6 +18,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'i
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+class QueueEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default="waiting")
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'index'
 login_manager.login_message = 'Пожалуйста, войдите, чтобы получить доступ к этой странице.'
@@ -99,11 +108,21 @@ def create_initial_data():
 
 # --- Маршруты (Routes) ---
 
-@app.route('/')
+@app.route("/")
 def index():
-    """Главная страница с меню."""
     menu = MenuItem.query.all()
-    return render_template('index.html', menu=menu)
+
+    queue = (
+        QueueEntry.query
+        .filter_by(status="waiting")
+        .order_by(QueueEntry.created_at.asc())
+        .all()
+    )
+
+    for q in queue:
+        q.local_time = q.created_at + timedelta(hours=5)
+
+    return render_template("index.html", menu=menu, queue=queue)
 
 
 @app.route('/add_to_cart/<int:item_id>', methods=['POST'])
@@ -129,6 +148,12 @@ def add_to_cart(item_id):
 
     return redirect(url_for('index'))
 
+@app.route("/queue/<int:entry_id>/done", methods=["POST"])
+def queue_done(entry_id):
+    entry = QueueEntry.query.get_or_404(entry_id)
+    entry.status = "done"
+    db.session.commit()
+    return redirect(url_for("admin_panel"))
 
 @app.route('/cart')
 def view_cart():
@@ -273,6 +298,41 @@ def payment_methods():
 
     return redirect(url_for('profile'))
 
+@app.route("/pay", methods=["POST"])
+def pay():
+    customer_name = request.form.get("name")
+
+    payment_success = True
+
+    if not payment_success:
+        flash("Оплата не прошла, попробуйте ещё раз", "danger")
+        return redirect(url_for("cart"))
+
+    entry = QueueEntry(name=customer_name)
+    db.session.add(entry)
+    db.session.commit()
+
+    position = (
+        QueueEntry.query
+        .filter(QueueEntry.status == "waiting", QueueEntry.id <= entry.id)
+        .count()
+    )
+
+    session["cart"] = {}
+    session.modified = True
+
+    return redirect(url_for("payment_success", entry_id=entry.id, pos=position))
+
+@app.route("/success")
+def payment_success():
+    entry_id = request.args.get("entry_id", type=int)
+    pos = request.args.get("pos", type=int)
+
+    entry = QueueEntry.query.get(entry_id)
+    if entry is None:
+        return render_template("success.html", entry=None, position=None)
+
+    return render_template("success.html", entry=entry, position=pos)
 
 # --- АДМИНИСТРИРОВАНИЕ МЕНЮ ---
 
@@ -281,7 +341,29 @@ def payment_methods():
 def admin_panel():
     """Панель администратора: просмотр меню."""
     menu = MenuItem.query.all()
-    return render_template('admin_panel.html', menu=menu)
+    queue_waiting = (
+        QueueEntry.query
+        .filter_by(status="waiting")
+        .order_by(QueueEntry.created_at.asc())
+        .all()
+    )
+
+    queue_done = (
+        QueueEntry.query
+        .filter_by(status="done")
+        .order_by(QueueEntry.created_at.desc())
+        .limit(20)   # последние 20 обслуженных
+        .all()
+    )
+
+    return render_template(
+        "admin_panel.html",
+        menu=menu,
+        queue_waiting=queue_waiting,
+        queue_done=queue_done,
+        timedelta=timedelta,
+    )
+
 
 
 @app.route('/admin/add', methods=['POST'])
@@ -339,6 +421,31 @@ def admin_edit_item(item_id):
 
     return redirect(url_for('admin_panel'))
 
+@app.route("/admin/queue/<int:entry_id>/done", methods=["POST"])
+def queue_mark_done(entry_id):
+    entry = QueueEntry.query.get_or_404(entry_id)
+    entry.status = "done"
+    db.session.commit()
+    flash(f"Клиент #{entry.id} отмечен как обслуженный.", "success")
+    return redirect(url_for("admin_panel"))
+
+
+@app.route("/admin/queue/<int:entry_id>/restore", methods=["POST"])
+def queue_restore(entry_id):
+    entry = QueueEntry.query.get_or_404(entry_id)
+    entry.status = "waiting"
+    db.session.commit()
+    flash(f"Клиент #{entry.id} возвращён в очередь.", "info")
+    return redirect(url_for("admin_panel"))
+
+
+@app.route("/admin/queue/<int:entry_id>/delete", methods=["POST"])
+def queue_delete(entry_id):
+    entry = QueueEntry.query.get_or_404(entry_id)
+    db.session.delete(entry)
+    db.session.commit()
+    flash(f"Запись #{entry.id} удалена из очереди.", "warning")
+    return redirect(url_for("admin_panel"))
 
 # --- Запуск Приложения ---
 if __name__ == '__main__':

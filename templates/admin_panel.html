@@ -80,4 +80,84 @@
     </div>
 </div>
 
+<h2 class="mt-4">Очередь</h2>
+
+<h4>В ожидании</h4>
+
+{% if queue_waiting %}
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Имя / клиент</th>
+        <th>Создан</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in queue_waiting %}
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.name or ("Гость #" ~ item.id) }}</td>
+          <td>{{ (item.created_at + timedelta(hours=5)).strftime("%d.%m %H:%M") }}</td>
+          <td class="d-flex gap-2">
+
+            <form method="post" action="{{ url_for('queue_mark_done', entry_id=item.id) }}">
+              <button type="submit" class="btn btn-sm btn-success">
+                Обслужен
+              </button>
+            </form>
+
+            <form method="post" action="{{ url_for('queue_delete', entry_id=item.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger"
+                      onclick="return confirm('Удалить запись из очереди?');">
+                Удалить
+              </button>
+            </form>
+
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>В очереди никого нет 👌</p>
+{% endif %}
+
+<hr>
+
+<h4>Обслуженные (последние)</h4>
+
+{% if queue_done %}
+  <table class="table table-sm table-hover align-middle">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Имя / клиент</th>
+        <th>Время</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in queue_done %}
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.name or ("Гость #" ~ item.id) }}</td>
+          <td>{{ (item.created_at + timedelta(hours=5)).strftime("%d.%m %H:%M") }}</td>
+          <td>
+            <form method="post" action="{{ url_for('queue_restore', entry_id=item.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline-secondary">
+                Вернуть в очередь
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>Обслуженных клиентов пока нет.</p>
+{% endif %}
+
+
 {% endblock %}

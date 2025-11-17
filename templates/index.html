@@ -15,9 +15,18 @@
                 <div class="d-flex justify-content-between align-items-center mt-auto">
                     <span class="fs-4 text-success">{{ "%.2f"|format(item.price) }} ₸</span>
 
-                    <form method="POST" action="{{ url_for('add_to_cart', item_id=item.id) }}" class="add-to-cart-form d-flex">
-                        <input type="number" name="quantity" value="1" min="1" class="form-control form-control-sm me-2" style="width: 70px;">
-                        <button type="submit" class="btn btn-outline-primary">В корзину <i class="bi bi-cart-plus"></i></button>
+                    <form method="POST"
+                          action="{{ url_for('add_to_cart', item_id=item.id) }}"
+                          class="add-to-cart-form d-flex">
+                        <input type="number"
+                               name="quantity"
+                               value="1"
+                               min="1"
+                               class="form-control form-control-sm me-2"
+                               style="width: 70px;">
+                        <button type="submit" class="btn btn-outline-primary">
+                            В корзину <i class="bi bi-cart-plus"></i>
+                        </button>
                     </form>
 
                 </div>
@@ -26,4 +35,22 @@
     </div>
     {% endfor %}
 </div>
+
+<hr class="my-4">
+
+<h2>Текущая очередь</h2>
+
+{% if queue %}
+  <ol>
+    {% for item in queue %}
+      <li>
+        {{ item.name or ("Гость #" ~ item.id) }}
+        — добавлен {{ item.local_time.strftime("%H:%M") }}
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <p>Очереди сейчас нет 👌</p>
+{% endif %}
+
 {% endblock %}

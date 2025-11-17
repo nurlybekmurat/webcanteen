@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="success-page">
+  <h1>Оплата прошла успешно ✅</h1>
+
+  {% if entry %}
+    <p>Спасибо за заказ{% if entry.name %}, {{ entry.name }}{% endif %}!</p>
+    {% if position %}
+      <p>Ваш номер в очереди: <strong>{{ position }}</strong></p>
+      <p>Перед вами человек(а): {{ position - 1 if position > 0 else 0 }}</p>
+    {% endif %}
+  {% else %}
+    <p>Данные по очереди не найдены, но оплата прошла успешно.</p>
+  {% endif %}
+
+  <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+{% endblock %}

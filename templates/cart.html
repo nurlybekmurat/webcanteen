@@ -30,7 +30,11 @@
     <form method="POST" action="{{ url_for('clear_cart') }}">
         <button type="submit" class="btn btn-warning"><i class="bi bi-trash"></i> Очистить корзину</button>
     </form>
-    <button class="btn btn-success btn-lg" style="background-color: var(--secondary-color); border-color: var(--secondary-color);"><i class="bi bi-check-circle"></i> Оформить заказ</button>
+    <form method="POST" action="{{ url_for('pay') }}">
+        |<button class="btn btn-success btn-lg" style="background-color: var(--secondary-color); border-color: var(--secondary-color);"><i class="bi bi-check-circle"></i> 
+            Оформить заказ
+        </button>
+    </form>
 </div>
 
 {% else %}
